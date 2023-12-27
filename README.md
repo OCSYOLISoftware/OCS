@@ -1,7 +1,7 @@
-# STeps
+# Steps
 
 # Entorno virtual
-source env/bin.activate
+source env/bin/activate
 
 # Uvicorn
 uvicorn main:app --reload

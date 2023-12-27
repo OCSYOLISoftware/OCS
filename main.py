@@ -20,7 +20,7 @@ class Employee(BaseModel):
     position: str
     supervisor:str
     salary: float
-
+    
     class Config:
         json_schema_extra = {
             "example": {
