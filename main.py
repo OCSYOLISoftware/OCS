@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Body
 from fastapi.responses import HTMLResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 
 app = FastAPI()
@@ -11,29 +11,29 @@ app.version = "0.0.3"
 
 class Employee(BaseModel):
     id: int
-    employee_id: int
-    name: str
-    dob: str
-    date_of_admission: str
-    department: str
-    campaign: Optional [str] = None
-    position: str
-    supervisor:str
-    salary: float
+    employee_id: int = Field(ge=1000)
+    name: str = Field(min_length=3, max_length= 25)
+    dob: str  = Field(min_length=3, max_length= 25)
+    date_of_admission: str  = Field(min_length=3, max_length= 25) 
+    department: str  = Field(min_length=3, max_length= 25)
+    campaign: Optional [str] = Field(min_length=3, max_length= 25)
+    position: str  = Field(min_length=3, max_length= 25)
+    supervisor:str  = Field(min_length=3, max_length= 25)
+    salary: float = Field(ge=1)
     
     class Config:
         json_schema_extra = {
             "example": {
-                "id": 1,
-                "employee_id": 1935,
-                "name": "Andrea Diaz Covarrubias Lopez",
-                "dob": "7/10/1996",
-                "date_of_admission": "28/03/2022",
-                "department": "Administration",
-                "campaign": "",
-                "position": "Rios Asistant",
-                "supervisor": "Christian Peña",
-                "salary": 500.00
+                "id": "Número de Empleado",
+                "employee_id": "Número de Empleado",
+                "name": "Nombre",
+                "dob": "Fecha de Nacimiento",
+                "date_of_admission": "Fecha de Ingreso",
+                "department": "Departamento",
+                "campaign": "Campaña",
+                "position": "Puesto",
+                "supervisor": "Supervisor",
+                "salary": "Sueldo Diario"
 
             }
         }
@@ -131,15 +131,15 @@ def create_employee(employee: Employee):
 @app.put('/employees/{employee_id}', tags=['employees'])
 def update_employee(employee_id: int, employee: Employee):
     for employee in employees:
-        if employee['employee_id'] == employee.employee_id:
-            employee['employee_id'] = employee.employee_id
-            employee['dob'] = employee.dob
-            employee['date_of_admission'] = employee.date_of_admission
-            employee['department'] = employee.department
-            employee['campaign'] = employee.campaign
-            employee['position'] = employee.position
-            employee['supervisor'] = employee.supervisor
-            employee['salary'] = employee.salary
+        if employee['employee_id'] == Employee.employee_id:
+            employee['employee_id'] = Employee.employee_id
+            employee['dob'] = Employee.dob
+            employee['date_of_admission'] = Employee.date_of_admission
+            employee['department'] = Employee.department
+            employee['campaign'] = Employee.campaign
+            employee['position'] = Employee.position
+            employee['supervisor'] = Employee.supervisor
+            employee['salary'] = Employee.salary
             return employees
 
 #Eliminar empleado
