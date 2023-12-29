@@ -16,16 +16,16 @@ class Employee(BaseModel):
     dob: str  = Field(min_length=3, max_length= 25)
     date_of_admission: str  = Field(min_length=3, max_length= 25) 
     department: str  = Field(min_length=3, max_length= 25)
-    campaign: Optional [str] = Field(min_length=3, max_length= 25)
-    position: str  = Field(min_length=3, max_length= 25)
+    campaign: Optional [str] = None
+    position: str  = Field(min_length=3, max_length= 30)
     supervisor:str  = Field(min_length=3, max_length= 25)
     salary: float = Field(ge=1)
     
     class Config:
         json_schema_extra = {
             "example": {
-                "id": "Número de Empleado",
-                "employee_id": "Número de Empleado",
+                "id": 1,
+                "employee_id":1000 ,
                 "name": "Nombre",
                 "dob": "Fecha de Nacimiento",
                 "date_of_admission": "Fecha de Ingreso",
@@ -33,7 +33,7 @@ class Employee(BaseModel):
                 "campaign": "Campaña",
                 "position": "Puesto",
                 "supervisor": "Supervisor",
-                "salary": "Sueldo Diario"
+                "salary": 100
 
             }
         }
@@ -48,7 +48,7 @@ employees = [
         "date_of_admission": "28/03/2022",
         "department": "Administration",
         "campaign": "",
-        "position": "Rios Asistant",
+        "position": "Rios Assistant",
         "supervisor": "Christian Peña",
         "salary": 800.00
     },
@@ -130,16 +130,16 @@ def create_employee(employee: Employee):
 #Modificar empleado
 @app.put('/employees/{employee_id}', tags=['employees'])
 def update_employee(employee_id: int, employee: Employee):
-    for employee in employees:
-        if employee['employee_id'] == Employee.employee_id:
-            employee['employee_id'] = Employee.employee_id
-            employee['dob'] = Employee.dob
-            employee['date_of_admission'] = Employee.date_of_admission
-            employee['department'] = Employee.department
-            employee['campaign'] = Employee.campaign
-            employee['position'] = Employee.position
-            employee['supervisor'] = Employee.supervisor
-            employee['salary'] = Employee.salary
+    for item in employees:
+        if item['employee_id'] == employee_id:
+            item['name'] = employee.name
+            item['dob'] = employee.dob
+            item['date_of_admission'] = employee.date_of_admission
+            item['department'] = employee.department
+            item['campaign'] = employee.campaign
+            item['position'] = employee.position
+            item['supervisor'] = employee.supervisor
+            item['salary'] = employee.salary
             return employees
 
 #Eliminar empleado
