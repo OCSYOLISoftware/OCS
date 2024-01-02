@@ -4,10 +4,14 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 from jwt_manager import create_token, validate_token
 from fastapi.security import HTTPBearer
+from config.database import Session, engine, Base
+from models.employee import Employee as EmployeeModel
 
 app = FastAPI()
 app.title = "Base de Datos Trabajadores"
 app.version = "0.0.3"
+
+Base.metadata.create_all(bind=engine)
 
 @app.get('/')
 
@@ -23,7 +27,7 @@ class User(BaseModel):
     password: str
 
 class Employee(BaseModel):
-    id: int
+    id: Optional [int] = None
     employee_id: int = Field(ge=1000)
     name: str = Field(min_length=3, max_length= 50)
     dob: str  = Field(min_length=3, max_length= 25)
@@ -146,8 +150,11 @@ def get_employess_by_department(department: str = Query(min_length=5, max_length
 #Agrega una nueva lista
 @app.post('/employees', tags=['employees'], response_model=dict, status_code=201)
 def create_employee(employee: Employee) -> dict:
-    employees.append(employee)
-    return JSONResponsec(status_code=201, content={"message": "Se ha registrado correctamente al trabajador."})
+    db = Session()
+    new_employee = EmployeeModel(**employee.dict())
+    db.add(new_employee)
+    db.commit()
+    return JSONResponse(status_code=201, content={"message": "Se ha registrado correctamente al trabajador."})
 
 #Modificar empleado
 @app.put('/employees/{employee_id}', tags=['employees'], response_model=dict, status_code=200)
