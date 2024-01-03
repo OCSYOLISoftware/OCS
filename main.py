@@ -6,6 +6,7 @@ from jwt_manager import create_token, validate_token
 from fastapi.security import HTTPBearer
 from config.database import Session, engine, Base
 from models.employee import Employee as EmployeeModel
+from fastapi.encoders import jsonable_encoder
 
 app = FastAPI()
 app.title = "Base de Datos Trabajadores"
@@ -131,24 +132,30 @@ def login(user: User):
 #mostrar empleado
 @app.get('/employees', tags=['employees'], response_model=List[Employee], status_code=200, dependencies=[Depends(JWTBearer())])
 def get_employee() -> List[Employee]:
-    return JSONResponse(status_code=200, content=employees)
+    db = Session()
+    result = db.query(EmployeeModel).all()
+    return JSONResponse(status_code=200, content=jsonable_encoder(result))
 
 #mostrar empleado por ID
-@app.get('/employees/{employee_id}', tags=['employees'], response_model=Employee)
+@app.get('/employees/{employee_id}', tags=['employees'], response_model=Employee, dependencies=[Depends(JWTBearer())])
 def get_employee(employee_id: int = Path(ge=1000)) -> Employee:
-    for employee in employees:
-        if employee ["employee_id"] == employee_id:
-            return JSONResponse(content=employee)
-    return JSONResponse(status_code=404, content=[])
+    db = Session()
+    result = db.query(EmployeeModel).filter(EmployeeModel.employee_id == employee_id).first()
+    if not result:
+        return JSONResponse(status_code=404, content = {"message": "Número de empleado no encontrado."})
+    return JSONResponse(status_code=200, content=jsonable_encoder(result))
 
 #filtrar por departamento
-@app.get("/employees/", tags=['employees'], response_model=List[Employee])
+@app.get("/employees/", tags=['employees'], response_model=List[Employee], dependencies=[Depends(JWTBearer())])
 def get_employess_by_department(department: str = Query(min_length=5, max_length=25)) -> List[Employee]:
-    data = [employee for employee in employees if employee['department'] == department]
-    return JSONResponse(content=data) 
+    db = Session()
+    result = db.query(EmployeeModel).filter(EmployeeModel.department == department).all()
+    if not result:
+        return JSONResponse(status_code=404, content={"message": "Departamento no encontrado"})
+    return JSONResponse(status_code=200, content=jsonable_encoder(result)) 
 
-#Agrega una nueva lista
-@app.post('/employees', tags=['employees'], response_model=dict, status_code=201)
+#Agrega un nuevo empleado
+@app.post('/employees', tags=['employees'], response_model=dict, status_code=201, dependencies=[Depends(JWTBearer())])
 def create_employee(employee: Employee) -> dict:
     db = Session()
     new_employee = EmployeeModel(**employee.dict())
@@ -157,24 +164,30 @@ def create_employee(employee: Employee) -> dict:
     return JSONResponse(status_code=201, content={"message": "Se ha registrado correctamente al trabajador."})
 
 #Modificar empleado
-@app.put('/employees/{employee_id}', tags=['employees'], response_model=dict, status_code=200)
+@app.put('/employees/{employee_id}', tags=['employees'], response_model=dict, status_code=200, dependencies=[Depends(JWTBearer())])
 def update_employee(employee_id: int, employee: Employee) -> dict:
-    for item in employees:
-        if item['employee_id'] == employee_id:
-            item['name'] = employee.name
-            item['dob'] = employee.dob
-            item['date_of_admission'] = employee.date_of_admission
-            item['department'] = employee.department
-            item['campaign'] = employee.campaign
-            item['position'] = employee.position
-            item['supervisor'] = employee.supervisor
-            item['salary'] = employee.salary
-            return JSONResponse(status_code=200, content={"message": "Se ha modificado correctamente al trabajador."})
+    db = Session()
+    result = db.query(EmployeeModel).filter(EmployeeModel.employee_id == employee_id).first()
+    if not result:
+        return JSONResponse(status_code=404, content = {"message": "Número de empleado no encontrado."})
+    result.name = employee.name
+    result.dob = employee.dob
+    result.date_of_admission = employee.date_of_admission
+    result.department = employee.department
+    result.campaign = employee.campaign
+    result.position = employee.position
+    result.supervisor = employee.supervisor
+    result.salary = employee.salary
+    db.commit()
+    return JSONResponse(status_code=200, content={"message": "Se ha modificado correctamente al trabajador."})
 
 #Eliminar empleado
-@app.delete('/employees/{employee_id}', tags=['employees'], response_model=dict, status_code=200)
+@app.delete('/employees/{employee_id}', tags=['employees'], response_model=dict, status_code=200, dependencies=[Depends(JWTBearer())])
 def delete_movie(employee_id: int) -> dict:
-    for employee in employees:
-        if employee['employee_id'] == employee_id:
-            employees.remove(employee)
-            return JSONResponse(status_code=200, content={"message": "Se ha eliminado correctamente al trabajador."})
+    db = Session()
+    result = db.query(EmployeeModel).filter(EmployeeModel.employee_id == employee_id).first()
+    if not result:
+        return JSONResponse(status_code=404, content = {"message": "Número de empleado no encontrado."})
+    db.delete(result)
+    db.commit()
+    return JSONResponse(status_code=200, content={"message": "Se ha eliminado correctamente al trabajador."})
