@@ -1,13 +1,9 @@
-from fastapi import Depends,FastAPI, Body, Path, Query, Request
+from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, JSONResponse
-from pydantic import BaseModel, Field
-from typing import Optional, List
-from jwt_manager import create_token, validate_token
-from config.database import Session, engine, Base
-from models.employee import Employee as EmployeeModel
-from fastapi.encoders import jsonable_encoder
+from config.database import engine, Base
 from middlewares.error_handler import ErrorHandler
-from middlewares.jwt_bearer import JWTBearer
+from routers.employee import employee_router
+from routers.user import user_router
 
 app = FastAPI()
 app.title = "Base de Datos Trabajadores"
@@ -15,42 +11,11 @@ app.version = "0.0.3"
 
 app.add_middleware(ErrorHandler)
 
+app.include_router(employee_router)
+app.include_router(user_router)
+
 Base.metadata.create_all(bind=engine)
 
-@app.get('/')
-
-class User(BaseModel):
-    email: str
-    password: str
-
-class Employee(BaseModel):
-    id: Optional [int] = None
-    employee_id: int = Field(ge=1000)
-    name: str = Field(min_length=3, max_length= 50)
-    dob: str  = Field(min_length=3, max_length= 25)
-    date_of_admission: str  = Field(min_length=3, max_length= 25) 
-    department: str  = Field(min_length=3, max_length= 25)
-    campaign: Optional [str] = None
-    position: str  = Field(min_length=3, max_length= 30)
-    supervisor:str  = Field(min_length=3, max_length= 25)
-    salary: float = Field(ge=1)
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "id": 1,
-                "employee_id":1000 ,
-                "name": "Nombre",
-                "dob": "Fecha de Nacimiento",
-                "date_of_admission": "Fecha de Ingreso",
-                "department": "Departamento",
-                "campaign": "Campaña",
-                "position": "Puesto",
-                "supervisor": "Supervisor",
-                "salary": 100
-
-            }
-        }
 
 #lista de productos
 employees = [
@@ -117,73 +82,3 @@ employees = [
 ]
 
 #Rutas
-@app.get('/', tags=['home'])
-
-@app.post('/login', tags=['auth'])
-def login(user: User):
-    if user.email == 'admin@admin' and user.password == 'admin':
-        token: str = create_token(user.dict())
-    return JSONResponse(status_code=200, content=token)
-
-#mostrar empleado
-@app.get('/employees', tags=['employees'], response_model=List[Employee], status_code=200, dependencies=[Depends(JWTBearer())])
-def get_employee() -> List[Employee]:
-    db = Session()
-    result = db.query(EmployeeModel).all()
-    return JSONResponse(status_code=200, content=jsonable_encoder(result))
-
-#mostrar empleado por ID
-@app.get('/employees/{employee_id}', tags=['employees'], response_model=Employee, dependencies=[Depends(JWTBearer())])
-def get_employee(employee_id: int = Path(ge=1000)) -> Employee:
-    db = Session()
-    result = db.query(EmployeeModel).filter(EmployeeModel.employee_id == employee_id).first()
-    if not result:
-        return JSONResponse(status_code=404, content = {"message": "Número de empleado no encontrado."})
-    return JSONResponse(status_code=200, content=jsonable_encoder(result))
-
-#filtrar por departamento
-@app.get("/employees/", tags=['employees'], response_model=List[Employee], dependencies=[Depends(JWTBearer())])
-def get_employess_by_department(department: str = Query(min_length=5, max_length=25)) -> List[Employee]:
-    db = Session()
-    result = db.query(EmployeeModel).filter(EmployeeModel.department == department).all()
-    if not result:
-        return JSONResponse(status_code=404, content={"message": "Departamento no encontrado"})
-    return JSONResponse(status_code=200, content=jsonable_encoder(result)) 
-
-#Agrega un nuevo empleado
-@app.post('/employees', tags=['employees'], response_model=dict, status_code=201, dependencies=[Depends(JWTBearer())])
-def create_employee(employee: Employee) -> dict:
-    db = Session()
-    new_employee = EmployeeModel(**employee.dict())
-    db.add(new_employee)
-    db.commit()
-    return JSONResponse(status_code=201, content={"message": "Se ha registrado correctamente al trabajador."})
-
-#Modificar empleado
-@app.put('/employees/{employee_id}', tags=['employees'], response_model=dict, status_code=200, dependencies=[Depends(JWTBearer())])
-def update_employee(employee_id: int, employee: Employee) -> dict:
-    db = Session()
-    result = db.query(EmployeeModel).filter(EmployeeModel.employee_id == employee_id).first()
-    if not result:
-        return JSONResponse(status_code=404, content = {"message": "Número de empleado no encontrado."})
-    result.name = employee.name
-    result.dob = employee.dob
-    result.date_of_admission = employee.date_of_admission
-    result.department = employee.department
-    result.campaign = employee.campaign
-    result.position = employee.position
-    result.supervisor = employee.supervisor
-    result.salary = employee.salary
-    db.commit()
-    return JSONResponse(status_code=200, content={"message": "Se ha modificado correctamente al trabajador."})
-
-#Eliminar empleado
-@app.delete('/employees/{employee_id}', tags=['employees'], response_model=dict, status_code=200, dependencies=[Depends(JWTBearer())])
-def delete_movie(employee_id: int) -> dict:
-    db = Session()
-    result = db.query(EmployeeModel).filter(EmployeeModel.employee_id == employee_id).first()
-    if not result:
-        return JSONResponse(status_code=404, content = {"message": "Número de empleado no encontrado."})
-    db.delete(result)
-    db.commit()
-    return JSONResponse(status_code=200, content={"message": "Se ha eliminado correctamente al trabajador."})
